@@ -156,6 +156,9 @@ def process_file(csv_path: pathlib.Path, out_root: pathlib.Path,
         print(f"  offset {offs['offset_ul_min']:+.4f} µL/min — sensor "
               f"{offs['sensor']} from the static zero test "
               f"(window over the first hours: {_fmt_or_dash(offs['window_offset_ul_min'])})")
+        if offs["table_verdict"] != "USABLE":
+            print(f"  [WARN] the offset of {offs['sensor']} is {offs['table_verdict']} in "
+                  f"{offs['table']} — repeat that sensor's zero test")
     else:
         offs = sp.offset_report(flow_raw, t_log_h, air, offset_window_h,
                              air_info["leading_air_end_h"])
