@@ -13,6 +13,17 @@ cmake -B build && cmake --build build
 ```
 
 The user needs access to `/dev/i2c-1` (`sudo usermod -aG i2c $USER`, then log in again).
+## Install on the ambient host (pi12), once
+
+```
+cd ~/elastomeric-pump-flow-study/ambient-temp-meas
+cmake -B build && cmake --build build
+sudo cp sht31-logger@.service /etc/systemd/system/ && sudo systemctl daemon-reload
+```
+
+The unit's paths assume the study is cloned in the home directory of user
+`rpi12`; edit `User=` and the paths otherwise.
+
 ## One record per tanda
 
 The study records ambient temperature once per **tanda** (the block of four

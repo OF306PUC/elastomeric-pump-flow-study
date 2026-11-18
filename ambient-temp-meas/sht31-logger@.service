@@ -18,8 +18,8 @@ After=time-sync.target
 
 [Service]
 User=rpi12
-WorkingDirectory=/home/rpi12/ambient-temp-meas
-ExecStart=/home/rpi12/ambient-temp-meas/build/sht31_logger --tanda %i --experiment pump-flow --campaign main --sensor-id TAMB1 --device-id pi12 --location junto_a_restrictores --out-dir /home/rpi12/ambient-temp-meas/data/main
+WorkingDirectory=/home/rpi12/elastomeric-pump-flow-study/ambient-temp-meas
+ExecStart=/home/rpi12/elastomeric-pump-flow-study/ambient-temp-meas/build/sht31_logger --tanda %i --experiment pump-flow --campaign main --sensor-id TAMB1 --device-id pi12 --location junto_a_restrictores --out-dir /home/rpi12/elastomeric-pump-flow-study/ambient-temp-meas/data/main
 Restart=on-failure
 RestartSec=5
 

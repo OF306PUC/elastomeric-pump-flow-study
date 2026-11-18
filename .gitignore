@@ -34,9 +34,10 @@ experiment_notes/**/*.heic
 .studio/
 /CLAUDE.md
 
-# Local reference material and notes
+# Local reference material and notes (kept local by the investigator)
 docs_liquid_flowmeter/
 methodology.txt
+metodologia-*.md
 
 # Credentials / local overrides
 credentials.json
