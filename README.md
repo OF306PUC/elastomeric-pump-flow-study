@@ -128,13 +128,26 @@ sudo systemctl disable --now sht31-logger@T01
 ### 7. Bring the data to the workstation and analyse
 
 ```bash
-# on the workstation, from this repository
-rsync -a pi1:elastomeric-pump-flow-study/data/C1_rep_1.{csv,bin} experimental_analysis/Temp/campana-main/C1/
-# … one line per run of the tanda
-
 cd experimental_analysis
+./fetch_data.sh                          # all hosts; --dry-run to only preview
 python3 main.py --campaign main          # → results/campana-main/summary.md
 ```
+
+`fetch_data.sh` copies every run from pi1, pi8, pi9 and pi10 (and the ambient
+logs from pi12) and files each one **by what its CSV header says**:
+
+```
+experimental_analysis/Temp/
+├── campana-main/<condition>/<run>.{csv,bin}   ← what the analysis reads
+├── sin-campana/<configuration>/               ← runs launched without a manifest (e.g. offset tests)
+├── ambient/                                   ← SHT31 logs from pi12
+├── _superseded/<date>/                        ← a previous version, whenever a run was replaced
+└── _incoming/<host>/                          ← raw mirror of each host's data/ (download cache)
+```
+
+A run that is still being written (no closing line yet) is reported and left
+alone; a run found on two hosts is reported and not filed; an existing file is
+never overwritten without its previous version being kept in `_superseded/`.
 
 The per-sensor zero offsets used by the analysis are in
 `experimental_analysis/Temp/offset/offset_por_sensor.csv`. Data and results are
