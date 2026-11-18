@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Runtime secrets / per-host launch configuration
+.env
+.env.*
+!.env.template
+
+# Acquisition outputs on the hosts (driver/run.sh mounts these from the cwd)
+data/
+logs/
+
+# Experimental data and analysis outputs — local only, never in git
+experimental_analysis/Temp/*
+!experimental_analysis/Temp/.gitkeep
+results/
+experimental_analysis/results/
+
+# Ambient logger build and data
+ambient-temp-meas/build/
+ambient-temp-meas/data/
+
+# Lab photos stay out of the repository; experiment_notes/ holds text only
+experiment_notes/**/*.jpg
+experiment_notes/**/*.jpeg
+experiment_notes/**/*.png
+experiment_notes/**/*.heic
+
+# AI tooling and its living documentation: LOCAL ONLY, never committed
+# (same policy as the driver repository)
+.claude/
+.studio/
+/CLAUDE.md
+
+# Local reference material and notes
+docs_liquid_flowmeter/
+methodology.txt
+
+# Credentials / local overrides
+credentials.json
+token.json
+token.txt
+settings.local.json
+*.pem
+*.key
+
+# OS / editor
+.DS_Store
+.vscode/

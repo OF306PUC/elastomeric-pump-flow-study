@@ -1,0 +1,27 @@
+# systemd template unit: one ambient record per tanda. The instance name is the
+# tanda, e.g. sht31-logger@T03 writes data/ambient_TAMB1_T03.csv.
+#
+# Install once:  sudo cp sht31-logger@.service /etc/systemd/system/
+#                sudo systemctl daemon-reload
+# Start tanda:   sudo systemctl enable --now sht31-logger@T03   (before the first pump)
+# End tanda:     sudo systemctl disable --now sht31-logger@T03  (after the last run ends)
+# Logs:          journalctl -u sht31-logger@T03 -f
+#
+# "enable" makes the logger come back after a power cut for as long as the tanda
+# lasts; "disable --now" stops it (footer status=STOPPED) and keeps it stopped.
+# Edit User, paths, --sensor-id and --location before installing.
+[Unit]
+Description=SHT31 ambient logger, tanda %i
+# Wait for NTP: timestamps are only useful for correlation once the clock is set.
+Wants=time-sync.target
+After=time-sync.target
+
+[Service]
+User=rpi12
+WorkingDirectory=/home/rpi12/ambient-temp-meas
+ExecStart=/home/rpi12/ambient-temp-meas/build/sht31_logger --tanda %i --experiment pump-flow --campaign main --sensor-id TAMB1 --device-id pi12 --location junto_a_restrictores --out-dir /home/rpi12/ambient-temp-meas/data/main
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
