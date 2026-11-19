@@ -95,11 +95,17 @@ when `sensor=` is not the sensor on this host's cable (the manifest maps each
 sensor to its USB adapter — a launch file copied from another host is caught
 here); when `data/` already holds this run's files; or when a run is active.
 
-Then fill and purge the pump, connect the line, and:
+Then, with the sensors installed, the pumps **empty** and every sensor outlet
+capped, launch all four at once — the run starts with the 30 min dry recording
+and goes on through filling, the zero check of C0 and the whole infusion
+(methodology, experimental procedure):
 
 ```bash
 ./run.sh
 ```
+
+Readings flagged as air during the dry recording are expected; `t = 0` of each
+line is found in the analysis, not at launch.
 
 It repeats the same checks and, if they pass, starts the container in the
 background — you can close the SSH session. Confirm it is reading:
@@ -119,8 +125,10 @@ To stop a run by hand: `docker stop slf3s-logger` (footer `status=INTERRUPTED`).
 
 ### 5. When the run ends
 
-The logger stops by itself once the flow has stayed near zero for about 20
-minutes (end of infusion), or after `HOURS`. Then check it:
+The logger stops by itself about 20 minutes after the flow stops (end of
+infusion) — but only once the flow has run for 3 h, so the dry recording, the
+filling and the capped hour of C0 never end a run — or after `HOURS`. Then
+check it:
 
 ```bash
 tail -1 data/C1_rep_1.csv                               # status=COMPLETE, coverage ≥ 0.99
