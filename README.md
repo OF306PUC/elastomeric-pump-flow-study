@@ -83,16 +83,26 @@ HOURS=96
 END_OF_INFUSION=on
 ```
 
+**Before filling any pump**, check all four hosts:
+
+```bash
+./run.sh --check
+```
+
+It validates the run exactly as the launch will and starts nothing. It refuses,
+and says why, when the condition, replicate, lot or tanda do not match the plan;
+when `sensor=` is not the sensor on this host's cable (the manifest maps each
+sensor to its USB adapter — a launch file copied from another host is caught
+here); when `data/` already holds this run's files; or when a run is active.
+
 Then fill and purge the pump, connect the line, and:
 
 ```bash
 ./run.sh
 ```
 
-`run.sh` first checks the run against the plan. If anything does not match
-(wrong lot, sensor, tanda…) it prints why and **launches nothing**. If it is
-accepted it starts the container in the background — you can close the SSH
-session. Confirm it is reading:
+It repeats the same checks and, if they pass, starts the container in the
+background — you can close the SSH session. Confirm it is reading:
 
 ```bash
 docker logs slf3s-logger | grep -E "single reader|Acquisition started"

@@ -54,6 +54,16 @@ vary_within_condition = ["pump_lot", "sensor"]
 # A sensor runs one experiment at a time.
 unique_together = [["tanda", "sensor"]]
 
+# Which USB adapter each sensor is read through (serial in /dev/serial/by-id/).
+# The driver rejects a run whose sensor= does not match the cable plugged into
+# the host — a launch file copied from another Pi. The serial is the CABLE's:
+# each sensor stays on its own cable (pi8 SEN1, pi1 SEN2, pi10 SEN3, pi9 SEN4).
+[adapters.sensor]
+SEN1 = "FTA3ZGRF"
+SEN2 = "FTAGHLMF"
+SEN3 = "FTAUNU9Z"
+SEN4 = "FTAUNUGK"
+
 # ── Run plan ─────────────────────────────────────────────────────────────────
 # The driver rejects a planned run launched with any other tanda, sensor or lot.
 # A failed run is replaced by a NEW replicate (rep_8, …) launched with
