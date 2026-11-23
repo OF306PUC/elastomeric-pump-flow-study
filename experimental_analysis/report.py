@@ -247,7 +247,11 @@ def _pipeline_section(params: dict, runs: list) -> list:
          ["5. onset detection",
           "find infusion onset and re-base time so t = 0 there; cut everything before",
           "first sustained air- and bubble-free sample above 3σ of the offset "
-          "window, 2 min debounce"],
+          "window, 2 min debounce, confirmed by flow ≥ "
+          f"{100 * config.TEFF_FRAC_OF_NOMINAL:.0f} % of corrected nominal in "
+          f"{100 * config.ONSET_CONFIRM_FRAC:.0f} % of the next "
+          f"{config.ONSET_CONFIRM_MIN:.0f} min (a fill followed by a capped "
+          "zero check is not the onset)"],
          ["6. exclusion",
           "drop air-flagged and bubble samples from curves and integration",
           "line interpolates across the gap; region shaded grey"],

@@ -290,11 +290,12 @@ def cumulative_volume_ml(t_s: np.ndarray, q_ul_min: np.ndarray) -> np.ndarray:
     return np.concatenate(([0.0], np.cumsum(dv)))
 
 
-def _sustained_crossing(t: np.ndarray, q: np.ndarray, q_th: float,
-                        sustained_s: float, above: bool,
-                        valid: np.ndarray = None):
+def _sustained_crossing_index(t: np.ndarray, q: np.ndarray, q_th: float,
+                              sustained_s: float, above: bool,
+                              valid: np.ndarray = None, start: int = 0):
     """
-    Start time of the first run where q stays on one side of q_th long enough.
+    Index of the first sample, at or after `start`, that begins a run where q stays
+    on one side of q_th for at least `sustained_s`; None if there is none.
 
     `valid` (optional) additionally requires the sample to be usable — used by
     find_onset to demand an air-free line. A sample that fails it breaks the run
@@ -302,7 +303,7 @@ def _sustained_crossing(t: np.ndarray, q: np.ndarray, q_th: float,
     fragments separated by air.
     """
     run_start = None
-    for i in range(len(t)):
+    for i in range(start, len(t)):
         val = q[i]
         usable = np.isfinite(val) and (valid is None or bool(valid[i]))
         if not usable:
@@ -311,16 +312,46 @@ def _sustained_crossing(t: np.ndarray, q: np.ndarray, q_th: float,
         on_side = (val >= q_th) if above else (val < q_th)
         if on_side:
             if run_start is None:
-                run_start = t[i]
-            elif t[i] - run_start >= sustained_s:
+                run_start = i
+            elif t[i] - t[run_start] >= sustained_s:
                 return run_start
         else:
             run_start = None
     return None
 
 
+def _sustained_crossing(t: np.ndarray, q: np.ndarray, q_th: float,
+                        sustained_s: float, above: bool,
+                        valid: np.ndarray = None):
+    """Start TIME of the first sustained run (see _sustained_crossing_index)."""
+    i = _sustained_crossing_index(t, q, q_th, sustained_s, above, valid)
+    return None if i is None else t[i]
+
+
+def _flow_is_sustained(t: np.ndarray, q: np.ndarray, valid: np.ndarray,
+                       i0: int, confirm_q: float, confirm_s: float,
+                       frac: float) -> bool:
+    """
+    True if, over [t[i0], t[i0] + confirm_s], at least `frac` of the usable
+    samples are at or above confirm_q. Unusable samples (air, bubble, NaN) are
+    skipped. False if the record ends before the window is complete.
+    """
+    end = t[i0] + confirm_s
+    if t[-1] < end:
+        return False
+    sel = (t >= t[i0]) & (t <= end) & np.isfinite(q)
+    if valid is not None:
+        sel &= valid.astype(bool)
+    n = int(sel.sum())
+    if n == 0:
+        return False
+    return bool((q[sel] >= confirm_q).sum() >= frac * n)
+
+
 def find_onset(t: np.ndarray, q_corrected: np.ndarray, q_th: float,
-               no_air: np.ndarray, sustained_min: float = 2.0):
+               no_air: np.ndarray, sustained_min: float = 2.0,
+               confirm_q: float = None, confirm_min: float = 30.0,
+               confirm_frac: float = 0.9):
     """
     Infusion onset — the instant that becomes t = 0 in every figure.
 
@@ -332,13 +363,30 @@ def find_onset(t: np.ndarray, q_corrected: np.ndarray, q_th: float,
     liquid is actually moving past the sensor, which is what makes the
     end-of-infusion decay land at a comparable place across replicates.
 
+    With `confirm_q` set, a candidate is accepted only if the flow is SUSTAINED
+    after it: over the next `confirm_min` minutes at least `confirm_frac` of the
+    air-free samples must be at or above `confirm_q`. Otherwise the search moves
+    past the candidate and tries the next one. This keeps t = 0 off a short burst
+    of real flow that is followed by zero flow — the fill of C0 before its capped
+    hour (B-027). A run that infuses straight away is accepted at its first
+    candidate, so its onset is unchanged.
+
     Runs on the OFFSET-CORRECTED RAW flow, not the filtered profile: a moving
     average lags a step by about half its window, which would push every t = 0
     late by a window-dependent amount and defeat the point of aligning at all.
     Debounced over `sustained_min`, so a single noise spike cannot fire it.
     """
-    return _sustained_crossing(t, q_corrected, q_th, sustained_min * 60.0,
-                               above=True, valid=no_air)
+    start = 0
+    while True:
+        i = _sustained_crossing_index(t, q_corrected, q_th, sustained_min * 60.0,
+                                      above=True, valid=no_air, start=start)
+        if i is None:
+            return None
+        if confirm_q is None or _flow_is_sustained(
+                t, q_corrected, no_air, i, confirm_q, confirm_min * 60.0,
+                confirm_frac):
+            return t[i]
+        start = i + 1
 
 
 def find_teff(t: np.ndarray, q: np.ndarray, q_th: float,

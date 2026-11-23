@@ -218,6 +218,34 @@ OFFSET_IMPLAUSIBLE_FRAC = 0.10
 # noise of a quiet 2-hour window, so the gate has to be scaled to the signal.
 TEFF_FRAC_OF_NOMINAL = 0.05
 
+# ── Onset confirmation (B-027) ────────────────────────────────────────────────
+# The procedure of a tanda fills C0 first and caps it for a one-hour zero check
+# before the infusion starts. The fill is a few minutes of real, air-free flow,
+# so "first sustained air-free flow" put t = 0 on the fill and counted the capped
+# hour as infusion — and the capped hour then also passed for the end of
+# infusion (T_eff = 0.23 h in T01). An onset candidate is therefore accepted only
+# if the flow is then sustained: over the next ONSET_CONFIRM_MIN minutes, at
+# least ONSET_CONFIRM_FRAC of the air-free samples must be at or above the
+# end-of-infusion threshold (TEFF_FRAC_OF_NOMINAL of nominal). The C0 fill lasts
+# ~10 min and is followed by zero flow, so it fails; a real infusion passes at its
+# first candidate, so C1–C3 keep exactly the onset they had. Air and bubble
+# samples are skipped, not counted against, so a bubble right after the fill
+# cannot push t = 0 later.
+ONSET_CONFIRM_MIN = 30.0
+ONSET_CONFIRM_FRAC = 0.9
+
+# ── Runs excluded on evidence ─────────────────────────────────────────────────
+# (campaign, condition, replicate) -> why. The run is kept on disk and listed in
+# the report with this reason; it produces no curves and enters no average.
+# Remove an entry to bring the run back.
+EXCLUDED_RUNS = {
+    ("main", "C3", "rep_1"): (
+        "sensor SEN4 integrated 202.7 mL where ~297 mL passed (the pump emptied) "
+        "and its error grew during the run, so the profile and volume cannot be "
+        "corrected; its duration is still valid (B-028, SEN4 diagnosis)"
+    ),
+}
+
 # ── Bubble transit rejection ──────────────────────────────────────────────────
 # A bubble crossing the measurement section does not read as "air" throughout.
 # It reads as a burst: a large flow excursion as the gas front enters, a near-zero

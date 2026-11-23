@@ -72,9 +72,31 @@ def _offset_from_sensor_table(metadata: dict, flow_raw, t_log_h, air,
             condition, experiment_rep, {"sensor": sensor},
         )
     entry = table[sensor]
+    # The window must hold only zero-flow time. Campaign 1 ended it at the
+    # leading air (the purge), which works for a sensor that starts DRY. A sensor
+    # that starts WET — liquid left from the previous run or from its zero test —
+    # has no leading air, so the window ran into the fill and the infusion, read
+    # as "already infusing" and rejected the run (C3 of T01, whose SEN4 started
+    # wet). The window therefore also ends just before the first reading whose
+    # flow exceeds the implausibility threshold — with or without air in that
+    # minute, since a part-air minute of a fill still carries real flow. Before
+    # that reading the line may hold liquid, but nothing is moving.
+    window_h = offset_window_h
+    lead = air_info["leading_air_end_h"]
+    if lead is not None and 0.0 < lead < window_h:
+        window_h = lead
+    nominal_ul_min = config.NOM_FLOW_ML_HR / UL_MIN_TO_ML_HR
+    flow_thr = config.OFFSET_IMPLAUSIBLE_FRAC * nominal_ul_min
+    moving = np.flatnonzero(np.isfinite(flow_raw) & (np.abs(flow_raw) >= flow_thr))
+    if moving.size:
+        i0 = int(moving[0])
+        # i0 == 0: flowing from the first reading — keep that one reading in the
+        # window so the gate below sees it and rejects the run.
+        window_h = min(window_h, float(t_log_h[i0 - 1]) if i0 > 0 else 0.0)
     try:
-        window = sp.offset_report(flow_raw, t_log_h, air, offset_window_h,
-                                  air_info["leading_air_end_h"])
+        window = sp.offset_report(flow_raw, t_log_h, air, window_h, None)
+        # Measured inside the zero-flow time by construction, so the gate fires
+        # only when flow is there from the very first readings.
     except ValueError:
         window = None
     n_per_row = float(np.nanmedian(df["N_samples"])) if "N_samples" in df else 1.0
@@ -130,6 +152,12 @@ def process_file(csv_path: pathlib.Path, out_root: pathlib.Path,
     # Format 2 = one row per 60 s window (CSV_FORMAT.md). Legacy = one row per
     # 10 s reading. Everything below works on either; the few places that must
     # differ test `windowed`.
+    excluded_reason = config.EXCLUDED_RUNS.get(
+        (str(metadata.get("campaign", "")), condition, experiment_rep))
+    if excluded_reason:
+        raise IncompleteRun(f"excluded: {excluded_reason}", condition,
+                            experiment_rep, {"excluded": True})
+
     windowed = format_version(metadata) >= 2
     df = load_csv(csv_path, keep_air_rows=windowed)
     t = df["UTC_Time"].to_numpy(dtype=np.float64)
@@ -168,9 +196,12 @@ def process_file(csv_path: pathlib.Path, out_root: pathlib.Path,
               f"{100*(offs['air_fraction_in_window'] or 0):.0f}% air)")
     flow_corr = flow_raw - offs["offset_ul_min"]
     if offs["implausible"]:
+        tripped = offs.get("window_offset_ul_min")
+        if tripped is None:
+            tripped = offs["offset_ul_min"]
         raise IncompleteRun(
-            f"already infusing when logging started (offset "
-            f"{offs['offset_ul_min']:+.1f} µL/min exceeds "
+            f"already infusing when logging started (zero-flow window reads "
+            f"{tripped:+.1f} µL/min, more than "
             f"{offs['implausible_threshold_ul_min']:.1f}), so there is no zero-flow "
             f"period to correct against",
             condition, experiment_rep, {"offset_ul_min": offs["offset_ul_min"]},
@@ -198,7 +229,13 @@ def process_file(csv_path: pathlib.Path, out_root: pathlib.Path,
     # samples are excluded from the same test: a transit spike is above any
     # sensible threshold and must never be allowed to define t = 0.
     onset_threshold = 3.0 * offs["sigma_ul_min"]
-    onset_s = sp.find_onset(t - t[0], flow_corr, onset_threshold, ~excluded)
+    # The candidate must be followed by sustained flow (B-027, config § Onset
+    # confirmation): C0's fill before its capped hour is not the infusion.
+    confirm_q = TEFF_FRAC_OF_NOMINAL * (config.NOM_FLOW_CORR_ML_HR / UL_MIN_TO_ML_HR)
+    onset_s = sp.find_onset(t - t[0], flow_corr, onset_threshold, ~excluded,
+                            confirm_q=confirm_q,
+                            confirm_min=config.ONSET_CONFIRM_MIN,
+                            confirm_frac=config.ONSET_CONFIRM_FRAC)
     onset_h = float(onset_s / 3600.0) if onset_s is not None else None
     if onset_h is None:
         raise IncompleteRun(
@@ -296,6 +333,10 @@ def process_file(csv_path: pathlib.Path, out_root: pathlib.Path,
         "offset_correction": offs,
         "onset": {"t_onset_h_on_logging_timebase": round(onset_h, 4),
                   "detected": onset_s is not None,
+                  "threshold_ul_min": round(float(onset_threshold), 6),
+                  "confirm": {"min_flow_ul_min": round(float(confirm_q), 3),
+                              "window_min": config.ONSET_CONFIRM_MIN,
+                              "min_fraction": config.ONSET_CONFIRM_FRAC},
                   "note": "series are re-based so t = 0 is the onset"},
         "filtering": {"window_min": ma_window_min,
                       "window_samples": int(ma_window)},
