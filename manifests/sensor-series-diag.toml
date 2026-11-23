@@ -1,0 +1,94 @@
+# Sensor diagnostic — two sensors IN SERIES on one line.
+#
+# Why: in tanda T01 SEN4 (line C3) integrated 202.7 mL where ~297 mL passed
+# (the pump emptied), and its reading relative to the other lines fell from 0.89
+# to 0.65 over ~36 h. Two sensors in series see the SAME flow, so the ratio of
+# their readings is the test sensor's error, free of pump, catheter and room.
+#
+# Physical setup (every condition):
+#   flow source → sensor upstream → short tube (no catheter) → sensor downstream
+#   → open outlet into a COVERED collector, outlet at the height of the source.
+#   Each sensor stays on its own cable and host (SEN4 = pi9, SEN1 = pi8), so the
+#   two loggers run at the same time on two hosts (clocks synced by NTP).
+#
+# Launch, one environment file per host (the operator edits it):
+#   pi9:  MANIFEST=sensor-series-diag.toml  CONFIG=S1  EXPERIMENT_REP=rep_1
+#         META="sensor=SEN4 position=upstream"     DEVICE_LOGGER_ID=pi9
+#   pi8:  MANIFEST=sensor-series-diag.toml  CONFIG=S1  EXPERIMENT_REP=rep_2
+#         META="sensor=SEN1 position=downstream"   DEVICE_LOGGER_ID=pi8
+#   both: END_OF_INFUSION=off   HOURS=<length of the condition, see below>
+# then ./run.sh --check and ./run.sh on both hosts, within a few seconds.
+# Analyse with experimental_analysis/diagnostics/series_compare.py.
+#
+# Conditions, in the order they are meant to run:
+#   S0  control: two sensors already known to agree (SEN3 → SEN1). Shows how
+#       closely the series method itself agrees. Optional if time is short.
+#   S1  SEN4 exactly as it came out of T01 — not purged, not cleaned.
+#   S2  the same, order swapped (SEN1 → SEN4): rules out a position effect.
+#   S3  after purging SEN4 at high flow (bubble hypothesis). A ratio that jumps
+#       back to ~1 right after the purge means a trapped bubble was the cause.
+#   S4  after cleaning SEN4 (deposit hypothesis), with a cleaning procedure
+#       allowed by the Sensirion handling guide.
+# rep_1 is always the sensor under test, rep_2 the reference.
+
+schema = 1
+
+[experiment]
+id = "sensor-series"
+campaign = "diag"
+title = "Two flow sensors in series on one line — agreement and drift of a sensor under test"
+status = "open"
+
+[conditions]
+S0 = "Control: SEN3 upstream, SEN1 downstream (two sensors that agreed in T01)"
+S1 = "SEN4 upstream, SEN1 downstream; SEN4 as it came out of T01 (not purged, not cleaned)"
+S2 = "SEN1 upstream, SEN4 downstream; SEN4 not purged, not cleaned (position swapped)"
+S3 = "SEN4 upstream, SEN1 downstream; after purging SEN4 at high flow"
+S4 = "SEN4 upstream, SEN1 downstream; after cleaning SEN4"
+
+[replicates]
+S0 = 2
+S1 = 2
+S2 = 2
+S3 = 2
+S4 = 2
+
+[fields]
+required = ["sensor", "position", "source"]
+
+[fields.defaults]
+fluid = "NaCl_0.9"
+
+[fields.patterns]
+sensor = "^SEN[1-4]$"
+position = "^(upstream|downstream)$"
+# What drives the flow: a syringe pump (several fixed rates, gain and linearity)
+# or an elastomeric pump (one long run, drift over a day or more).
+source = "^(syringe|elastomeric)$"
+
+# Same cables as the main campaign: each sensor stays on its own host.
+[adapters.sensor]
+SEN1 = "FTA3ZGRF"
+SEN2 = "FTAGHLMF"
+SEN3 = "FTAUNU9Z"
+SEN4 = "FTAUNUGK"
+
+[plan.S0]
+rep_1 = { sensor = "SEN3", position = "upstream" }
+rep_2 = { sensor = "SEN1", position = "downstream" }
+
+[plan.S1]
+rep_1 = { sensor = "SEN4", position = "upstream" }
+rep_2 = { sensor = "SEN1", position = "downstream" }
+
+[plan.S2]
+rep_1 = { sensor = "SEN4", position = "downstream" }
+rep_2 = { sensor = "SEN1", position = "upstream" }
+
+[plan.S3]
+rep_1 = { sensor = "SEN4", position = "upstream" }
+rep_2 = { sensor = "SEN1", position = "downstream" }
+
+[plan.S4]
+rep_1 = { sensor = "SEN4", position = "upstream" }
+rep_2 = { sensor = "SEN1", position = "downstream" }
