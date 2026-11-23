@@ -3,7 +3,7 @@
 # their hosts and compare the last N minutes. Read-only on the hosts.
 #
 #   ./series_watch.sh <test_host> <ref_host> <CONDITION> [minutes]
-#   ./series_watch.sh pi9 pi8 S1 30          # SEN4 on pi9 vs SEN1 on pi8, last 30 min
+#   ./series_watch.sh pi9 pi10 S1 30         # SEN4 on pi9 vs SEN3 on pi10, last 30 min
 #
 # By the manifest's convention the sensor under test is rep_1 and the reference
 # rep_2 (manifests/sensor-series-diag.toml). Use it right after the purge of

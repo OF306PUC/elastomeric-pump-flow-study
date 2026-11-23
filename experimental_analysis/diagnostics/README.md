@@ -4,9 +4,9 @@ Tools to check one flow sensor against another when both are mounted **in series
 on the same line**. They see the same flow, so the ratio of their readings is the
 error of the sensor under test, independent of the pump, the catheter and the room.
 
-Written for SEN4 after tanda T01: it integrated 202.7 mL where ~297 mL passed
-(the pump emptied), and its reading relative to the other lines fell from 0.89 to
-0.65 over ~36 h. The physical setup, conditions and launch lines are in
+Written for SEN4 after tanda T01: it integrated 202.7 mL while the other three
+lines, filled alike, integrated 285–287 mL, and its reading relative to the other
+lines fell from 0.89 to 0.65 over ~36 h. The reference is SEN3. The physical setup, conditions and launch lines are in
 [`manifests/sensor-series-diag.toml`](../../manifests/sensor-series-diag.toml).
 
 | File | What it does |
@@ -21,8 +21,8 @@ flow source → sensor upstream → short tube (no catheter) → sensor downstre
             → open outlet, at the height of the source, into a COVERED collector
 ```
 
-- Each sensor stays on its own cable and host (SEN4 on pi9, SEN1 on pi8, SEN3 on
-  pi10). Both loggers run at the same time; clocks are synced by NTP. The tubes
+- Each sensor stays on its own cable and host (SEN3 on pi10, SEN4 on pi9, SEN1 on
+  pi8). Both loggers run at the same time; clocks are synced by NTP. The tubes
   between the sensors must be short enough to reach — move a host if needed.
 - Fill both sensors slowly from below, with no air: an air reading in either
   sensor leaves those minutes out.
@@ -32,19 +32,23 @@ flow source → sensor upstream → short tube (no catheter) → sensor downstre
 
 | Condition | What | Source and length |
 | --- | --- | --- |
-| S0 | Control: SEN3 → SEN1, two sensors that agreed in T01 | syringe pump, 4 rates × 30 min |
-| S1 | SEN4 → SEN1, SEN4 as it came out of T01 | syringe pump, 4 rates × 30 min; then elastomeric pump ≥ 24 h |
-| S2 | SEN1 → SEN4, order swapped | syringe pump, 4 rates × 30 min |
-| S3 | SEN4 → SEN1 after purging SEN4 at high flow | syringe pump; watch live right after the purge |
-| S4 | SEN4 → SEN1 after cleaning SEN4 | as S1 |
+| S0 | Control: SEN1 → SEN3, two sensors that agreed in T01 | optional |
+| S1 | SEN3 → SEN4, SEN4 as it came out of T01 — **first, before any purge or cleaning** | elastomeric pump until it empties (catches drift); or syringe pump, 4 rates × 30 min |
+| S2 | SEN4 → SEN3, order swapped | as S1, can be shorter |
+| S3 | SEN3 → SEN4 after purging SEN4 at high flow | watch live right after the purge |
+| S4 | SEN3 → SEN4 after cleaning SEN4 | as S1 |
+
+A used pump refilled with saline is a valid source here: first use matters for the
+study runs, not for a series test, because both sensors see whatever flow it gives.
 
 Suggested rates for a syringe pump: 20, 50, 80 and 150 µL/min (the pumps of the
 study delivered 40–90 µL/min). The long elastomeric run is what catches drift: in
 T01 the error of SEN4 grew mostly between hours 27 and 34.
 
-A condition stops in one of two ways. With `END_OF_INFUSION=off` it ends at
-`HOURS` with `status=COMPLETE` (set `HOURS` to the planned length); a run stopped
-by hand ends `INTERRUPTED`, which is fine for a diagnostic but must be said.
+A condition stops in one of three ways: with an elastomeric pump and
+`END_OF_INFUSION=on`, by itself ~20 min after the pump empties; with
+`END_OF_INFUSION=off`, at `HOURS`; both end `status=COMPLETE`. A run stopped by
+hand ends `INTERRUPTED`, which is fine for a diagnostic but must be said.
 
 ## Launch (per host, the operator edits the environment file)
 
@@ -53,20 +57,23 @@ by hand ends `INTERRUPTED`, which is fine for a diagnostic but must be said.
 MANIFEST=sensor-series-diag.toml
 CONFIG=S1
 EXPERIMENT_REP=rep_1
-META="sensor=SEN4 position=upstream source=syringe"
+META="sensor=SEN4 position=downstream source=elastomeric"
 DEVICE_LOGGER_ID=pi9
-HOURS=2.5
-END_OF_INFUSION=off
+HOURS=96
+END_OF_INFUSION=on
 
-# pi8 — reference
+# pi10 — reference
 MANIFEST=sensor-series-diag.toml
 CONFIG=S1
 EXPERIMENT_REP=rep_2
-META="sensor=SEN1 position=downstream source=syringe"
-DEVICE_LOGGER_ID=pi8
-HOURS=2.5
-END_OF_INFUSION=off
+META="sensor=SEN3 position=upstream source=elastomeric"
+DEVICE_LOGGER_ID=pi10
+HOURS=96
+END_OF_INFUSION=on
 ```
+
+With a syringe pump instead, use `source=syringe`, `END_OF_INFUSION=off` and
+`HOURS` = the planned length (e.g. 2.5 for 4 rates × 30 min).
 
 Then `./run.sh --check` on both (it rejects a sensor on the wrong cable, a
 position that does not match the plan, or a run that already exists), and
@@ -76,7 +83,7 @@ position that does not match the plan, or a run that already exists), and
 
 ```bash
 cd experimental_analysis/diagnostics
-./series_watch.sh pi9 pi8 S1 30                     # live: last 30 min
+./series_watch.sh pi9 pi10 S1 30                    # live: last 30 min
 # after the run, bring the files in with ../fetch_data.sh, then:
 python3 series_compare.py ../Temp/campana-diag/S1/S1_rep_1.csv \
                           ../Temp/campana-diag/S1/S1_rep_2.csv \
