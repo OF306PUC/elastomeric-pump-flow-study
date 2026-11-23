@@ -156,7 +156,10 @@ logs from pi12) and files each one **by what its CSV header says**:
 
 ```
 experimental_analysis/Temp/
-├── campana-main/<condition>/<run>.{csv,bin}   ← what the analysis reads
+├── campana-main/<tanda>/                      ← what the analysis reads: one folder per tanda
+│   ├── C0_rep_1.{csv,bin} … C3_rep_1.{csv,bin}   the four runs measured together
+│   └── ambient_TAMB1_<tanda>.csv                  its ambient log, once closed
+├── campana-diag/<condition>/                  ← sensor diagnostics (no tanda), e.g. the series test
 ├── sin-campana/<configuration>/               ← runs launched without a manifest (e.g. offset tests)
 ├── ambient/                                   ← SHT31 logs from pi12
 ├── _superseded/<date>/                        ← a previous version, whenever a run was replaced

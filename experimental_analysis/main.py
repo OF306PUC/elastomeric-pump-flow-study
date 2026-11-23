@@ -47,6 +47,7 @@ from config import (
     CAMPAIGNS, DEFAULT_CAMPAIGN, MA_WINDOW_MIN, OFFSET_WINDOW_H, colour_for,
 )
 from figures import DEFAULT_DPI
+from csv_io import parse_metadata
 
 
 def parse_args():
@@ -77,18 +78,25 @@ def parse_args():
 
 
 def discover_csv_files(campaign: str) -> tuple:
-    """(files to analyse, files skipped) from Temp/campana-<n>/C*/, filtered to the conditions."""
+    """(files to analyse, files skipped) from Temp/campana-<n>/, filtered to the
+    conditions. Campaign main files runs by tanda (T01/, T02/, …: the condition is
+    read from each file's header); campaign 1 by condition (C*/)."""
     temp_dir = pathlib.Path(__file__).parent / "Temp" / f"campana-{campaign}"
     if not temp_dir.is_dir():
         print(f"[ERROR] No data directory for campaign {campaign}: {temp_dir}",
               file=sys.stderr)
         sys.exit(1)
-    discovered = sorted(temp_dir.glob("C*/*.csv"))
+    by_condition = sorted(temp_dir.glob("C*/*.csv"))
+    by_tanda = sorted(p for p in temp_dir.glob("T[0-9]*/*.csv")
+                      if not p.name.startswith("ambient_"))
     # `C0_baseline` is a PRELIMINARY run predating this protocol: logged at 1 Hz
     # instead of 10 s, no metadata header, no sample_index column. Auto-including
     # it would silently mix a different timebase into the comparison, so it is
     # skipped; name its path explicitly to analyse it alone.
-    keep = [p for p in discovered if p.parent.name in config.STUDY_CONDITIONS]
+    keep = [p for p in by_condition if p.parent.name in config.STUDY_CONDITIONS]
+    keep += [p for p in by_tanda
+             if parse_metadata(p).get("configuration", "") in config.STUDY_CONDITIONS]
+    discovered = by_condition + by_tanda
     return keep, [p for p in discovered if p not in keep]
 
 
@@ -111,7 +119,7 @@ def main() -> None:
         csv_files, skipped = discover_csv_files(args.campaign)
         if not csv_files:
             print(f"[ERROR] No study-condition CSV files found in "
-                  f"Temp/campana-{args.campaign}/C*/", file=sys.stderr)
+                  f"Temp/campana-{args.campaign}/ (T*/ or C*/)", file=sys.stderr)
             sys.exit(1)
         print(f"[analyse] Auto-discovered {len(csv_files)} file(s) across the "
               f"{len(config.STUDY_CONDITIONS)} study conditions")
