@@ -19,7 +19,7 @@ mkdir -p "$LIVE"
 REMOTE=elastomeric-pump-flow-study/data
 scp -q "$TEST_HOST:$REMOTE/${COND}_rep_1.csv" "$LIVE/${COND}_test_${TEST_HOST}.csv"
 scp -q "$REF_HOST:$REMOTE/${COND}_rep_2.csv"  "$LIVE/${COND}_ref_${REF_HOST}.csv"
-# The minute blocks are short here so a change shows up quickly.
+# Short blocks (2 min) so a change — e.g. right after a purge — shows up quickly.
 python3 "$HERE/series_compare.py" \
     "$LIVE/${COND}_test_${TEST_HOST}.csv" "$LIVE/${COND}_ref_${REF_HOST}.csv" \
-    --last "$MIN" --block-min 5
+    --last "$MIN" --block-min 2

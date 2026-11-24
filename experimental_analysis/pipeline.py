@@ -236,6 +236,17 @@ def process_file(csv_path: pathlib.Path, out_root: pathlib.Path,
                             confirm_q=confirm_q,
                             confirm_min=config.ONSET_CONFIRM_MIN,
                             confirm_frac=config.ONSET_CONFIRM_FRAC)
+    override = config.ONSET_OVERRIDES.get(
+        (str(metadata.get("campaign", "")), condition, experiment_rep))
+    onset_note = "detected"
+    if override:
+        import datetime as _dt
+        when, why = override
+        detected_s = onset_s
+        onset_s = _dt.datetime.fromisoformat(when).timestamp() - t[0]
+        onset_note = f"fixed by hand at {when}: {why}"
+        print(f"  onset fixed by hand at {when} (detected: "
+              f"{'—' if detected_s is None else round(detected_s / 3600.0, 4)} h) — {why}")
     onset_h = float(onset_s / 3600.0) if onset_s is not None else None
     if onset_h is None:
         raise IncompleteRun(
@@ -334,6 +345,7 @@ def process_file(csv_path: pathlib.Path, out_root: pathlib.Path,
         "onset": {"t_onset_h_on_logging_timebase": round(onset_h, 4),
                   "detected": onset_s is not None,
                   "threshold_ul_min": round(float(onset_threshold), 6),
+                  "how": onset_note,
                   "confirm": {"min_flow_ul_min": round(float(confirm_q), 3),
                               "window_min": config.ONSET_CONFIRM_MIN,
                               "min_fraction": config.ONSET_CONFIRM_FRAC},

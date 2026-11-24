@@ -246,6 +246,18 @@ EXCLUDED_RUNS = {
     ),
 }
 
+# ── Onset fixed by hand ───────────────────────────────────────────────────────
+# (campaign, condition, replicate) -> (ISO time with its UTC offset, why). The
+# run's t = 0 is set there instead of being detected. For a deviation recorded in
+# the lab notes that the detector cannot see in the flow.
+ONSET_OVERRIDES = {
+    ("main", "C3", "rep_2"): (
+        "2026-11-23T14:10:00-03:00",
+        "T02: C3 was uncapped at ~14:01 without its catheter; the catheter was "
+        "connected at 14:10, so the C3 configuration starts there",
+    ),
+}
+
 # ── Bubble transit rejection ──────────────────────────────────────────────────
 # A bubble crossing the measurement section does not read as "air" throughout.
 # It reads as a burst: a large flow excursion as the gas front enters, a near-zero
