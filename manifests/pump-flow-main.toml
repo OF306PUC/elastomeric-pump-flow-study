@@ -44,8 +44,15 @@ pump_lot = "^LOT[ABC]$"
 # Physical sensor label. Each sensor has its own systematic error (up to ±5 % of
 # reading per the datasheet), so the sensor is a factor, not a detail.
 sensor = "^SEN[1-4]$"
-# T01–T07 are planned; T08+ are for replacement runs.
-tanda = "^T[0-9]{2}$"
+# T01–T07 are planned; T08+ are for replacement runs. A letter suffix (T02b)
+# names the second part of a tanda that could not run all four together: its
+# runs were measured with each other, not with the rest of the tanda.
+tanda = "^T[0-9]{2}[a-z]?$"
+# Where a run did NOT run as first planned, the plan keeps what it was planned
+# with, so every data file records both (the driver requires the launch to pass
+# them: --meta planned_tanda=… planned_sensor=…). Only set on such runs.
+planned_tanda = "^T[0-9]{2}[a-z]?$"
+planned_sensor = "^SEN[1-4]$"
 
 [constraints]
 # Methodology rule: no catheter configuration may be measured with a single lot —
@@ -85,6 +92,16 @@ SEN4 = "FTAUNUGK"
 #  T05    C2·LOTB     C3·LOTC     C1·LOTA     C0·LOTA   
 #  T06    C3·LOTC     C0·LOTA     C2·LOTB     C1·LOTA   
 #  T07    C1·LOTC     C2·LOTA     C0·LOTA     C3·LOTB   
+#
+# Deviations from the plan above (2026-11-26). SEN4 was diagnosed faulty (B-028)
+# and is not used. T02 ran in two parts: T02 = C0 rep_2 (SEN2) + C3 rep_2 (SEN1),
+# 23–26 Nov; T02b = the three runs below, together, from 26 Nov:
+#   C1 rep_2  LOTB  SEN3            planned T02 SEN3  (only the tanda changes)
+#   C2 rep_2  LOTC  SEN1            planned T02 SEN4  (SEN4 faulty)
+#   C2 rep_3  LOTA  SEN2            planned T03 SEN1  (brought forward from T03)
+# Consequences for the design: C2 has two runs in one block (T02b); C2 now uses
+# SEN1 ×2, SEN2 ×3, SEN3 ×2 and never SEN4; T03 has no C2 left and still lists
+# C1 rep_3 on SEN4, so T03 must be re-planned without SEN4 before it starts.
 
 [plan.C0]
 rep_1 = { tanda = "T01", sensor = "SEN1", pump_lot = "LOTB" }
@@ -97,7 +114,7 @@ rep_7 = { tanda = "T07", sensor = "SEN3", pump_lot = "LOTA" }
 
 [plan.C1]
 rep_1 = { tanda = "T01", sensor = "SEN2", pump_lot = "LOTC" }
-rep_2 = { tanda = "T02", sensor = "SEN3", pump_lot = "LOTB" }
+rep_2 = { tanda = "T02b", sensor = "SEN3", pump_lot = "LOTB", planned_tanda = "T02" }
 rep_3 = { tanda = "T03", sensor = "SEN4", pump_lot = "LOTB" }
 rep_4 = { tanda = "T04", sensor = "SEN1", pump_lot = "LOTA" }
 rep_5 = { tanda = "T05", sensor = "SEN3", pump_lot = "LOTA" }
@@ -106,8 +123,8 @@ rep_7 = { tanda = "T07", sensor = "SEN1", pump_lot = "LOTC" }
 
 [plan.C2]
 rep_1 = { tanda = "T01", sensor = "SEN3", pump_lot = "LOTC" }
-rep_2 = { tanda = "T02", sensor = "SEN4", pump_lot = "LOTC" }
-rep_3 = { tanda = "T03", sensor = "SEN1", pump_lot = "LOTA" }
+rep_2 = { tanda = "T02b", sensor = "SEN1", pump_lot = "LOTC", planned_tanda = "T02", planned_sensor = "SEN4" }
+rep_3 = { tanda = "T02b", sensor = "SEN2", pump_lot = "LOTA", planned_tanda = "T03", planned_sensor = "SEN1" }
 rep_4 = { tanda = "T04", sensor = "SEN2", pump_lot = "LOTC" }
 rep_5 = { tanda = "T05", sensor = "SEN1", pump_lot = "LOTB" }
 rep_6 = { tanda = "T06", sensor = "SEN3", pump_lot = "LOTB" }

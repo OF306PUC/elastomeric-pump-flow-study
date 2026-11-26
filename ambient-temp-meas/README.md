@@ -36,7 +36,7 @@ sudo systemctl enable --now sht31-logger@T03    # when preparing T03, before the
 sudo systemctl disable --now sht31-logger@T03   # after the last run of T03 has ended
 ```
 
-`--tanda` must match `^T[0-9]{2}$`, the manifest's pattern. With a tanda the
+`--tanda` must match `^T[0-9]{2}[a-z]?$`, the manifest's pattern (T02b = second part of T02). With a tanda the
 logger writes a single file, `data/main/ambient_TAMB1_T03.csv`, however many
 days the tanda lasts; a crash or power cut appends to it under a new header
 block (`appended : yes`). Without `--tanda` it logs freely, one file per UTC day.

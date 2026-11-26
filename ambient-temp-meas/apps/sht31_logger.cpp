@@ -126,8 +126,8 @@ Options parseArgs(int argc, char** argv) {
     }
     if (o.sensor_id.empty()) throw std::invalid_argument("--sensor-id is required");
     // Same pattern as the manifest's [fields.patterns].tanda.
-    if (!o.tanda.empty() && !std::regex_match(o.tanda, std::regex("T[0-9]{2}")))
-        throw std::invalid_argument("--tanda must look like T01..T99, got " + o.tanda);
+    if (!o.tanda.empty() && !std::regex_match(o.tanda, std::regex("T[0-9]{2}[a-z]?")))
+        throw std::invalid_argument("--tanda must look like T01..T99 or T02b, got " + o.tanda);
     if (o.interval_ms < 100) throw std::invalid_argument("--interval-ms must be >= 100");
     if (o.window_s <= 0 || 86400 % o.window_s != 0)
         throw std::invalid_argument("--window-s must divide 86400 (e.g. 10, 30, 60, 300)");

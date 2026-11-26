@@ -94,7 +94,7 @@ def read_header(csv_path: pathlib.Path) -> dict:
     return meta
 
 
-TANDA = re.compile(r"^T[0-9]{2,}$")
+TANDA = re.compile(r"^T[0-9]{2,}[a-z]?$")
 
 
 def destination(meta: dict) -> pathlib.Path:
