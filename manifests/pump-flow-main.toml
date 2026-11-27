@@ -93,12 +93,14 @@ SEN4 = "FTAUNUGK"
 #  T06    C3·LOTC     C0·LOTA     C2·LOTB     C1·LOTA   
 #  T07    C1·LOTC     C2·LOTA     C0·LOTA     C3·LOTB   
 #
-# Deviations from the plan above (2026-11-26). SEN4 was diagnosed faulty (B-028)
-# and is not used. T02 ran in two parts: T02 = C0 rep_2 (SEN2) + C3 rep_2 (SEN1),
-# 23–26 Nov; T02b = the three runs below, together, from 26 Nov:
-#   C1 rep_2  LOTB  SEN3            planned T02 SEN3  (only the tanda changes)
-#   C2 rep_2  LOTC  SEN1            planned T02 SEN4  (SEN4 faulty)
-#   C2 rep_3  LOTA  SEN2            planned T03 SEN1  (brought forward from T03)
+# Deviations from the plan above (2026-11-26/27). SEN4 was diagnosed faulty
+# (B-028) and is not used. T02 ran in three parts, each a set of runs launched
+# together: T02 = C0 rep_2 (SEN2) + C3 rep_2 (SEN1), 23–26 Nov; T02b = the two
+# C2 runs below, from 26 Nov; T02c = C1 rep_2 alone, from 27 Nov (launched ~17 h
+# after T02b, in the same room, so it is not part of that block):
+#   C1 rep_2  LOTB  SEN3  T02c      planned T02 SEN3  (only the tanda changes)
+#   C2 rep_2  LOTC  SEN1  T02b      planned T02 SEN4  (SEN4 faulty)
+#   C2 rep_3  LOTA  SEN2  T02b      planned T03 SEN1  (brought forward from T03)
 # Consequences for the design: C2 has two runs in one block (T02b); C2 now uses
 # SEN1 ×2, SEN2 ×3, SEN3 ×2 and never SEN4; T03 has no C2 left and still lists
 # C1 rep_3 on SEN4, so T03 must be re-planned without SEN4 before it starts.
@@ -114,7 +116,7 @@ rep_7 = { tanda = "T07", sensor = "SEN3", pump_lot = "LOTA" }
 
 [plan.C1]
 rep_1 = { tanda = "T01", sensor = "SEN2", pump_lot = "LOTC" }
-rep_2 = { tanda = "T02b", sensor = "SEN3", pump_lot = "LOTB", planned_tanda = "T02" }
+rep_2 = { tanda = "T02c", sensor = "SEN3", pump_lot = "LOTB", planned_tanda = "T02" }
 rep_3 = { tanda = "T03", sensor = "SEN4", pump_lot = "LOTB" }
 rep_4 = { tanda = "T04", sensor = "SEN1", pump_lot = "LOTA" }
 rep_5 = { tanda = "T05", sensor = "SEN3", pump_lot = "LOTA" }
